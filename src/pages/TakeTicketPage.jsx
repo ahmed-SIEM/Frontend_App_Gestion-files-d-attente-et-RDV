@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { etablissementsAPI, servicesAPI, ticketsAPI } from '../services/api';
-import { Clock, Users, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function TakeTicketPage() {
   const { etablissementId, serviceId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const [establishment, setEstablishment] = useState(null);
   const [service, setService] = useState(null);
@@ -40,7 +42,7 @@ export default function TakeTicketPage() {
       
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error('Erreur lors du chargement des données');
+      toast.error(t('errors.load_data'));
     } finally {
       setLoading(false);
     }
@@ -60,8 +62,6 @@ export default function TakeTicketPage() {
     if (!schedule || !schedule.ouvert || !stats) return false;
     
     const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
     // Temps avant fermeture (en minutes)
     const [closingHour, closingMin] = schedule.fermeture.split(':');
     const closingTime = new Date();
@@ -82,12 +82,12 @@ export default function TakeTicketPage() {
         serviceId: serviceId
       });
       
-      toast.success('Ticket pris avec succès !');
+      toast.success(t('take_ticket.success'));
       navigate(`/citoyen/ticket-confirmation/${response.data._id}`);
-      
+
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error(error.message || 'Erreur lors de la prise du ticket');
+      toast.error(error.message || t('take_ticket.error'));
     } finally {
       setSubmitting(false);
     }
@@ -107,10 +107,10 @@ export default function TakeTicketPage() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-xl font-semibold text-gray-900 mb-2">
-            Service non trouvé
+            {t('take_ticket.not_found')}
           </p>
           <Link to="/citoyen/home">
-            <Button>Retour à la recherche</Button>
+            <Button>{t('take_ticket.back_search')}</Button>
           </Link>
         </div>
       </div>
@@ -132,15 +132,15 @@ export default function TakeTicketPage() {
           to={`/citoyen/establishment/${etablissementId}`} 
           className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Retour
+          <ArrowLeft className="w-5 h-5 me-2" />
+          {t('common.back')}
         </Link>
 
         <Card className="p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-8">
             <Badge className="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white animate-pulse">
-              File Active
+              {t('take_ticket.queue_active')}
             </Badge>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{service.nom}</h1>
             <p className="text-gray-600">{establishment.nom}</p>
@@ -148,22 +148,22 @@ export default function TakeTicketPage() {
 
           {/* Stats en temps réel */}
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">État de la file en temps réel</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t('take_ticket.realtime_title')}</h2>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700 mb-2">Ticket actuel</p>
+                <p className="text-sm text-blue-700 mb-2">{t('take_ticket.current_ticket')}</p>
                 <p className="text-4xl font-bold text-blue-900">
                   {stats?.ticket_actuel ? `#${stats.ticket_actuel}` : '—'}
                 </p>
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <p className="text-sm text-purple-700 mb-2">En attente</p>
+                <p className="text-sm text-purple-700 mb-2">{t('take_ticket.waiting')}</p>
                 <p className="text-4xl font-bold text-purple-900">
                   {stats?.nombre_en_attente ?? '—'}
                 </p>
               </div>
               <div className="text-center p-4 bg-pink-50 rounded-lg">
-                <p className="text-sm text-pink-700 mb-2">Temps estimé</p>
+                <p className="text-sm text-pink-700 mb-2">{t('take_ticket.est_time')}</p>
                 <p className="text-4xl font-bold text-pink-900">
                   {stats?.temps_attente_estime
                     ? `~${Math.floor(stats.temps_attente_estime / 60)}h${stats.temps_attente_estime % 60 > 0 ? stats.temps_attente_estime % 60 + 'min' : ''}`
@@ -175,27 +175,27 @@ export default function TakeTicketPage() {
 
           {/* Infos horaires */}
           <Card className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 mb-6">
-            <h3 className="font-bold text-gray-900 mb-3">Informations horaires</h3>
+            <h3 className="font-bold text-gray-900 mb-3">{t('take_ticket.hours_title')}</h3>
             <div className="space-y-2 text-sm text-gray-700">
               {todaySchedule ? (
                 <>
                   <div className="flex justify-between">
-                    <span>Ouverture :</span>
+                    <span>{t('take_ticket.opening')} :</span>
                     <span className="font-semibold">
-                      {todaySchedule.ouvert 
-                        ? `${todaySchedule.ouverture} - ${todaySchedule.fermeture}` 
-                        : 'Fermé'}
+                      {todaySchedule.ouvert
+                        ? `${todaySchedule.ouverture} - ${todaySchedule.fermeture}`
+                        : t('common.closed')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Guichets actifs :</span>
+                    <span>{t('take_ticket.active_counters')} :</span>
                     <span className="font-semibold">
-                      {stats?.guichets_actifs ?? 0} sur {stats?.total_guichets ?? 0}
+                      {stats?.guichets_actifs ?? 0} {t('common.of')} {stats?.total_guichets ?? 0}
                     </span>
                   </div>
                 </>
               ) : (
-                <p className="text-gray-600">Horaires non disponibles</p>
+                <p className="text-gray-600">{t('take_ticket.no_hours')}</p>
               )}
             </div>
           </Card>
@@ -207,7 +207,7 @@ export default function TakeTicketPage() {
                 <div className="flex items-start space-x-3">
                   <AlertCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-green-800">
-                    Vous serez servi avant la fermeture de l'établissement
+                    {t('take_ticket.will_be_served')}
                   </p>
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function TakeTicketPage() {
                 <div className="flex items-start space-x-3">
                   <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-orange-800">
-                    Attention : Vous risquez de ne pas être servi aujourd'hui
+                    {t('take_ticket.might_not_be_served')}
                   </p>
                 </div>
               </div>
@@ -232,11 +232,11 @@ export default function TakeTicketPage() {
           >
             {submitting ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Prise en cours...
+                <Loader2 className="w-5 h-5 me-2 animate-spin" />
+                {t('take_ticket.taking')}
               </>
             ) : (
-              'Prendre mon Ticket'
+              t('take_ticket.cta')
             )}
           </Button>
         </Card>

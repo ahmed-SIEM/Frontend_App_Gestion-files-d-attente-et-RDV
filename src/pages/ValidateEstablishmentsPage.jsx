@@ -1,24 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../contexts/AuthContext';
 import { etablissementsAPI } from '../services/api';
-import { 
-  Building2, 
-  FileText, 
-  CheckCircle, 
-  X, 
-  Eye, 
-  LayoutDashboard, 
-  CheckCircle as CheckIcon, 
-  BarChart3, 
-  Settings,
+import {
+  Building2,
+  FileText,
+  CheckCircle,
+  X,
+  Eye,
   Loader2,
   AlertCircle
 } from 'lucide-react';
+import SuperAdminSidebar from '../components/SuperAdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -32,9 +28,13 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 
+function openDocument(url) {
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 export default function ValidateEstablishmentsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [establishments, setEstablishments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,11 +50,10 @@ export default function ValidateEstablishmentsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Récupérer tous les établissements (incluant en_attente)
-      const response = await etablissementsAPI.getAll();
-      setEstablishments(response.data);
-      
+
+      const response = await etablissementsAPI.getAllAdmin();
+      setEstablishments(response.data || []);
+
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Erreur lors du chargement des données');
@@ -127,62 +126,7 @@ export default function ValidateEstablishmentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white p-6 hidden lg:block">
-        <Link to="/" className="flex items-center space-x-2 mb-10">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-xl">F</span>
-          </div>
-          <span className="text-xl font-bold">FileZen</span>
-        </Link>
-
-        <nav className="space-y-2">
-          <Link 
-            to="/superadmin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/validate" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3 relative"
-          >
-            <CheckIcon className="w-5 h-5" />
-            <span>Validation établissements</span>
-            {pendingEstablishments.length > 0 && (
-              <Badge className="absolute right-3 bg-orange-500">
-                {pendingEstablishments.length}
-              </Badge>
-            )}
-          </Link>
-          
-          <Link 
-            to="/superadmin/establishments" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Building2 className="w-5 h-5" />
-            <span>Gestion établissements</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques globales</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/settings" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-            <span>Configuration</span>
-          </Link>
-        </nav>
-      </aside>
+      <SuperAdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -233,7 +177,7 @@ export default function ValidateEstablishmentsPage() {
                             <div className="flex items-center space-x-2 mt-2">
                               <Badge>{getTypeLabel(establishment.type)}</Badge>
                               <span className="text-sm text-gray-500">
-                                Soumis le {new Date(establishment.date_inscription).toLocaleDateString('fr-FR')}
+                                Soumis le {new Date(establishment.createdAt).toLocaleDateString('fr-FR')}
                               </span>
                             </div>
                           </div>
@@ -246,12 +190,12 @@ export default function ValidateEstablishmentsPage() {
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Adresse:</span>
-                              <span className="font-medium">{establishment.adresse?.rue}</span>
+                              <span className="font-medium">{establishment.adresse}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Ville:</span>
                               <span className="font-medium">
-                                {establishment.adresse?.ville}, {establishment.gouvernorat}
+                                {establishment.ville}, {establishment.gouvernorat}
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -271,20 +215,16 @@ export default function ValidateEstablishmentsPage() {
                             <div className="flex justify-between">
                               <span className="text-gray-600">Nom:</span>
                               <span className="font-medium">
-                                {establishment.admin_prenom} {establishment.admin_nom}
+                                {establishment.admin?.nom_complet || establishment.admin?.prenom + ' ' + establishment.admin?.nom || '—'}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Email:</span>
-                              <span className="font-medium">{establishment.admin_email}</span>
+                              <span className="font-medium">{establishment.admin?.email || '—'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Téléphone:</span>
-                              <span className="font-medium">{establishment.admin_telephone}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Fonction:</span>
-                              <span className="font-medium">{establishment.admin_fonction}</span>
+                              <span className="font-medium">{establishment.admin?.telephone || '—'}</span>
                             </div>
                           </div>
                         </div>
@@ -306,10 +246,21 @@ export default function ValidateEstablishmentsPage() {
                                     <p className="text-xs text-gray-500">{doc.taille || 'Document'}</p>
                                   </div>
                                 </div>
-                                <Button size="sm" variant="outline">
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  Voir
-                                </Button>
+                                {doc.url ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openDocument(doc.url)}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Voir
+                                  </Button>
+                                ) : (
+                                  <Button size="sm" variant="outline" disabled>
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Voir
+                                  </Button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -370,7 +321,7 @@ export default function ValidateEstablishmentsPage() {
                         <div>
                           <h3 className="font-bold text-lg text-gray-900">{establishment.nom}</h3>
                           <p className="text-sm text-gray-600">
-                            {establishment.adresse?.ville}, {establishment.gouvernorat}
+                            {establishment.ville}, {establishment.gouvernorat}
                           </p>
                         </div>
                         <Badge className="bg-green-600">Approuvé</Badge>
@@ -406,7 +357,7 @@ export default function ValidateEstablishmentsPage() {
                         <div>
                           <h3 className="font-bold text-lg text-gray-900">{establishment.nom}</h3>
                           <p className="text-sm text-gray-600">
-                            {establishment.adresse?.ville}, {establishment.gouvernorat}
+                            {establishment.ville}, {establishment.gouvernorat}
                           </p>
                         </div>
                         <Badge className="bg-red-600">Rejeté</Badge>
@@ -446,7 +397,7 @@ export default function ValidateEstablishmentsPage() {
           <div className="py-4">
             <p className="text-gray-900 font-semibold">{selectedEstablishment?.nom}</p>
             <p className="text-sm text-gray-600">
-              {selectedEstablishment?.adresse?.ville}, {selectedEstablishment?.gouvernorat}
+              {selectedEstablishment?.ville}, {selectedEstablishment?.gouvernorat}
             </p>
           </div>
           <AlertDialogFooter>

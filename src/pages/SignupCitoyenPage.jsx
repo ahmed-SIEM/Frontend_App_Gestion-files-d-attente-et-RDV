@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,6 +16,7 @@ import MapPicker from '../components/MapPicker';
 export default function SignupCitoyenPage() {
   const navigate = useNavigate();
   const { signupCitoyen } = useAuth();
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -66,13 +68,12 @@ export default function SignupCitoyenPage() {
     // Validation Step 1
     if (step === 1) {
       if (!formData.prenom || !formData.nom || !formData.cin || !formData.gouvernorat) {
-        toast.error('Veuillez remplir tous les champs obligatoires');
+        toast.error(t('signup_citizen.errors.required_fields'));
         return;
       }
-      
-      // Validation CIN
+
       if (!validateCIN(formData.cin)) {
-        toast.error('CIN invalide. Le CIN doit contenir exactement 8 chiffres');
+        toast.error(t('signup_citizen.errors.cin_invalid'));
         return;
       }
     }
@@ -80,27 +81,17 @@ export default function SignupCitoyenPage() {
     // Validation Step 2
     if (step === 2) {
       if (!formData.email || !formData.telephone || !formData.adresse) {
-        toast.error('Veuillez remplir tous les champs obligatoires');
-        return;
+        toast.error(t('signup_citizen.errors.required_fields')); return;
       }
-      
-      // Validation email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
-        toast.error('Email invalide');
-        return;
+        toast.error(t('signup_citizen.errors.email_invalid')); return;
       }
-      
-      // Validation téléphone
       if (!validatePhone(formData.telephone)) {
-        toast.error('Numéro de téléphone invalide. Format attendu : 98765432 ou +216 98765432');
-        return;
+        toast.error(t('signup_citizen.errors.phone_invalid')); return;
       }
-
-      // Validation adresse
       if (formData.adresse.length < 10) {
-        toast.error('Adresse trop courte. Veuillez entrer une adresse complète');
-        return;
+        toast.error(t('signup_citizen.errors.address_short')); return;
       }
     }
     
@@ -114,13 +105,10 @@ export default function SignupCitoyenPage() {
   const handleSubmit = async () => {
     // Validation finale
     if (!formData.mot_de_passe || formData.mot_de_passe.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères');
-      return;
+      toast.error(t('signup_citizen.errors.password_short')); return;
     }
-    
     if (formData.mot_de_passe !== formData.confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
-      return;
+      toast.error(t('signup_citizen.errors.passwords_mismatch')); return;
     }
 
     setLoading(true);
@@ -141,22 +129,22 @@ export default function SignupCitoyenPage() {
       const result = await signupCitoyen(userData);
 
       if (result.success) {
-        toast.success('Compte créé avec succès !');
-        setTimeout(() => navigate('/citoyen/home'), 1500);
+        toast.success(t('signup_citizen.success'));
+        navigate(`/verify-email?userId=${result.userId}&email=${encodeURIComponent(result.email)}`);
       } else {
-        toast.error(result.message || 'Erreur lors de la création du compte');
+        toast.error(result.message || t('signup_citizen.errors.create_error'));
       }
     } catch (error) {
-      toast.error('Erreur lors de la création du compte');
+      toast.error(t('signup_citizen.errors.create_error'));
     } finally {
       setLoading(false);
     }
   };
 
   const progressSteps = [
-    { number: 1, label: 'Informations' },
-    { number: 2, label: 'Contact' },
-    { number: 3, label: 'Sécurité' },
+    { number: 1, label: t('signup_citizen.steps.info') },
+    { number: 2, label: t('signup_citizen.steps.contact') },
+    { number: 3, label: t('signup_citizen.steps.security') },
   ];
 
   return (
@@ -191,7 +179,7 @@ export default function SignupCitoyenPage() {
               <div>
                 <div className="font-semibold text-lg">{s.label}</div>
                 <div className="text-sm text-white/70">
-                  {step === s.number ? 'En cours' : step > s.number ? 'Terminé' : 'À venir'}
+                  {step === s.number ? t('signup_citizen.step_status.current') : step > s.number ? t('signup_citizen.step_status.done') : t('signup_citizen.step_status.upcoming')}
                 </div>
               </div>
             </motion.div>
@@ -200,14 +188,14 @@ export default function SignupCitoyenPage() {
 
         <div className="mt-16">
           <h2 className="text-2xl font-bold mb-4">
-            {step === 1 && "Commençons par vos informations"}
-            {step === 2 && "Comment pouvons-nous vous contacter ?"}
-            {step === 3 && "Sécurisez votre compte"}
+            {step === 1 && t('signup_citizen.side.title1')}
+            {step === 2 && t('signup_citizen.side.title2')}
+            {step === 3 && t('signup_citizen.side.title3')}
           </h2>
           <p className="text-white/80">
-            {step === 1 && "Nous avons besoin de quelques informations pour créer votre compte"}
-            {step === 2 && "Ces informations nous permettront de vous contacter si nécessaire"}
-            {step === 3 && "Choisissez un mot de passe fort pour protéger votre compte"}
+            {step === 1 && t('signup_citizen.side.desc1')}
+            {step === 2 && t('signup_citizen.side.desc2')}
+            {step === 3 && t('signup_citizen.side.desc3')}
           </p>
         </div>
       </div>
@@ -232,7 +220,7 @@ export default function SignupCitoyenPage() {
                 </span>
               </div>
               <h2 className="text-3xl font-bold text-gray-900">
-                Étape {step}/3 : {progressSteps[step - 1].label}
+                {t('signup_citizen.step_label', { step, label: progressSteps[step - 1].label })}
               </h2>
             </div>
 
@@ -240,7 +228,7 @@ export default function SignupCitoyenPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="prenom">Prénom *</Label>
+                  <Label htmlFor="prenom">{t('signup_citizen.firstname')} *</Label>
                   <Input
                     id="prenom"
                     value={formData.prenom}
@@ -250,7 +238,7 @@ export default function SignupCitoyenPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="nom">Nom *</Label>
+                  <Label htmlFor="nom">{t('signup_citizen.lastname')} *</Label>
                   <Input
                     id="nom"
                     value={formData.nom}
@@ -260,7 +248,7 @@ export default function SignupCitoyenPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="cin">CIN / Numéro d'identité *</Label>
+                  <Label htmlFor="cin">{t('signup_citizen.cin')} *</Label>
                   <Input
                     id="cin"
                     value={formData.cin}
@@ -276,14 +264,14 @@ export default function SignupCitoyenPage() {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    8 chiffres exactement
+                    {t('signup_citizen.cin_hint')}
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="gouvernorat">Gouvernorat *</Label>
+                  <Label htmlFor="gouvernorat">{t('signup_citizen.governorate')} *</Label>
                   <Select onValueChange={(value) => updateField('gouvernorat', value)} value={formData.gouvernorat}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un gouvernorat" />
+                      <SelectValue placeholder={t('signup_citizen.governorate_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {gouvernorats.map((g) => (
@@ -301,7 +289,7 @@ export default function SignupCitoyenPage() {
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">{t('signup_citizen.email')} *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -312,7 +300,7 @@ export default function SignupCitoyenPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="telephone">Téléphone *</Label>
+                  <Label htmlFor="telephone">{t('signup_citizen.phone')} *</Label>
                   <Input
                     id="telephone"
                     value={formData.telephone}
@@ -321,17 +309,17 @@ export default function SignupCitoyenPage() {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Format : 98765432 ou +216 98765432
+                    {t('signup_citizen.phone_hint')}
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="adresse">Adresse complète *</Label>
+                  <Label htmlFor="adresse">{t('signup_citizen.address')} *</Label>
                   <div className="flex gap-2">
                     <Input
                       id="adresse"
                       value={formData.adresse}
                       onChange={(e) => updateField('adresse', e.target.value)}
-                      placeholder="Rue, Avenue, Ville..."
+                      placeholder={t('signup_citizen.address_placeholder')}
                       required
                       className="flex-1"
                     />
@@ -339,13 +327,13 @@ export default function SignupCitoyenPage() {
                       type="button"
                       onClick={() => setShowMap(true)}
                       className="bg-blue-600 hover:bg-blue-700 px-4"
-                      title="Choisir sur la carte"
+                      title={t('signup_citizen.map_title')}
                     >
                       <MapPin className="w-5 h-5" />
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Minimum 10 caractères • Ou cliquez sur 📍 pour choisir sur la carte
+                    {t('signup_citizen.address_hint')}
                   </p>
                 </div>
               </div>
@@ -355,7 +343,7 @@ export default function SignupCitoyenPage() {
             {step === 3 && (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="mot_de_passe">Mot de passe *</Label>
+                  <Label htmlFor="mot_de_passe">{t('signup_citizen.password')} *</Label>
                   <Input
                     id="mot_de_passe"
                     type="password"
@@ -385,17 +373,17 @@ export default function SignupCitoyenPage() {
                           : 'text-green-500'
                       }`}
                     >
-                      {passwordStrength === 'weak' && 'Faible'}
-                      {passwordStrength === 'medium' && 'Moyen'}
-                      {passwordStrength === 'strong' && 'Fort'}
+                      {passwordStrength === 'weak' && t('signup_citizen.strength.weak')}
+                      {passwordStrength === 'medium' && t('signup_citizen.strength.medium')}
+                      {passwordStrength === 'strong' && t('signup_citizen.strength.strong')}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Minimum 6 caractères
+                    {t('signup_citizen.password_hint')}
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="confirmPassword">Confirmer mot de passe *</Label>
+                  <Label htmlFor="confirmPassword">{t('signup_citizen.confirm_password')} *</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -412,24 +400,24 @@ export default function SignupCitoyenPage() {
             <div className="flex items-center justify-between mt-8">
               {step > 1 ? (
                 <Button variant="outline" onClick={handlePrevious}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Précédent
+                  <ArrowLeft className="w-4 h-4 me-2" />
+                  {t('signup_citizen.previous')}
                 </Button>
               ) : (
                 <div></div>
               )}
               {step < 3 ? (
                 <Button onClick={handleNext} className="ml-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Suivant
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {t('signup_citizen.next')}
+                  <ArrowRight className="w-4 h-4 ms-2" />
                 </Button>
               ) : (
-                <Button 
-                  onClick={handleSubmit} 
+                <Button
+                  onClick={handleSubmit}
                   className="ml-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   disabled={loading}
                 >
-                  {loading ? 'Création...' : 'Créer mon compte'}
+                  {loading ? t('signup_citizen.submitting') : t('signup_citizen.submit')}
                 </Button>
               )}
             </div>
@@ -437,12 +425,12 @@ export default function SignupCitoyenPage() {
             {step === 1 && (
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
-                  En continuant, vous acceptez nos conditions d'utilisation
+                  {t('signup_citizen.terms')}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Déjà un compte ?{' '}
+                  {t('signup_citizen.already_account')}{' '}
                   <Link to="/login" className="text-blue-600 hover:underline font-semibold">
-                    Se connecter
+                    {t('signup_citizen.login_link')}
                   </Link>
                 </p>
               </div>

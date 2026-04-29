@@ -1,29 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
-import { statsAPI, etablissementsAPI } from '../services/api';
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  Users, 
-  Clock, 
-  Calendar as CalendarIcon, 
-  BarChart3, 
-  Ticket, 
+import { statsAPI } from '../services/api';
+import {
+  Wrench,
+  Users,
+  Clock,
+  Calendar as CalendarIcon,
+  Ticket,
   TrendingUp,
-  Loader2,
-  LogOut
+  Loader2
 } from 'lucide-react';
+import AdminSidebar from '../components/AdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [establishment, setEstablishment] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,12 +31,8 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
 
-      // Récupérer l'établissement de l'admin
-      const etablissementResponse = await etablissementsAPI.getById(user.etablissement);
-      setEstablishment(etablissementResponse.data);
-
       // Récupérer les stats du dashboard
-      const statsResponse = await statsAPI.getDashboardEtablissement(user.etablissement);
+      const statsResponse = await statsAPI.getDashboardEtablissement(user.etablissement_id);
       setStats(statsResponse.data);
 
     } catch (error) {
@@ -49,11 +41,6 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   if (loading) {
@@ -105,75 +92,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-purple-900 to-purple-700 text-white p-6 hidden lg:block">
-        <div className="mb-10">
-          <p className="text-sm text-white/70 mb-1">Établissement</p>
-          <p className="font-bold">{establishment?.nom || 'Mon Établissement'}</p>
-        </div>
-        
-        <nav className="space-y-2">
-          <Link 
-            to="/admin/dashboard" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-          
-          <Link 
-            to="/admin/services" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Wrench className="w-5 h-5" />
-            <span>Gestion Services</span>
-          </Link>
-          
-          <Link 
-            to="/admin/agents" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Users className="w-5 h-5" />
-            <span>Gestion Agents</span>
-          </Link>
-          
-          <Link 
-            to="/admin/hours" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Horaires & Pauses</span>
-          </Link>
-          
-          <Link 
-            to="/admin/appointments-config" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <CalendarIcon className="w-5 h-5" />
-            <span>Configuration RDV</span>
-          </Link>
-          
-          <Link 
-            to="/admin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques</span>
-          </Link>
-        </nav>
-
-        {/* Logout button */}
-        <div className="mt-auto pt-6">
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </Button>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">

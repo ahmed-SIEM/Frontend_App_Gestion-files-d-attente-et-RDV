@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 
 export default function CitoyenHomePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [establishments, setEstablishments] = useState([]);
@@ -48,12 +50,12 @@ export default function CitoyenHomePage() {
   });
 
   const types = [
-    { value: 'all', label: 'Tous' },
-    { value: 'mairie', label: 'Mairies' },
-    { value: 'hopital', label: 'Hôpitaux' },
-    { value: 'poste', label: 'Postes' },
-    { value: 'cnam', label: 'CNAM' },
-    { value: 'banque', label: 'Banques' },
+    { value: 'all', label: t('citoyen_home.type_all') },
+    { value: 'mairie', label: t('citoyen_home.type_mairie') },
+    { value: 'hopital', label: t('citoyen_home.type_hopital') },
+    { value: 'poste', label: t('citoyen_home.type_poste') },
+    { value: 'cnam', label: t('citoyen_home.type_cnam') },
+    { value: 'banque', label: t('citoyen_home.type_banque') },
   ];
 
   return (
@@ -67,16 +69,16 @@ export default function CitoyenHomePage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl font-bold text-white mb-6">
-              Rechercher un établissement
+              {t('citoyen_home.title')}
             </h1>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
+              <Search className="absolute start-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
               <Input
                 type="text"
-                placeholder="Rechercher par nom ou ville..."
+                placeholder={t('citoyen_home.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-4 py-6 rounded-xl text-lg border-0"
+                className="w-full ps-14 pe-4 py-6 rounded-xl text-lg border-0"
               />
             </div>
           </motion.div>
@@ -111,7 +113,7 @@ export default function CitoyenHomePage() {
           <div className="mb-6">
             <p className="text-sm text-gray-600">
               <span className="font-semibold">{filteredEstablishments.length}</span>{' '}
-              établissements trouvés
+              {t('citoyen_home.results_count')}
             </p>
           </div>
 
@@ -131,8 +133,14 @@ export default function CitoyenHomePage() {
                 >
                   <Card className="p-6 hover:shadow-xl transition-all cursor-pointer h-full border border-gray-200 bg-white">
                     <div className="flex items-start space-x-4 mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Building2 className="w-6 h-6 text-white" />
+                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden">
+                        {establishment.photo ? (
+                          <img src={establishment.photo} alt={establishment.nom} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                            <Building2 className="w-6 h-6 text-white" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-gray-900 mb-1">
@@ -161,7 +169,7 @@ export default function CitoyenHomePage() {
                       }
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
                     >
-                      Voir les Services
+                      {t('citoyen_home.see_services')}
                     </Button>
                   </Card>
                 </motion.div>
@@ -173,10 +181,10 @@ export default function CitoyenHomePage() {
             <div className="text-center py-16">
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Aucun établissement trouvé
+                {t('citoyen_home.no_results')}
               </h3>
               <p className="text-gray-600">
-                Essayez de modifier vos critères de recherche
+                {t('citoyen_home.no_results_hint')}
               </p>
             </div>
           )}

@@ -1,32 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Save,
   Loader2,
   Camera,
-  CheckCircle2,
-  LayoutDashboard,
-  CheckCircle,
-  Building2,
-  BarChart3,
-  Settings,
-  LogOut
+  CheckCircle2
 } from 'lucide-react';
+import SuperAdminSidebar from '../components/SuperAdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function SuperAdminProfilePage() {
-  const { user, updateUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
 
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -116,85 +109,9 @@ export default function SuperAdminProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white p-6 hidden lg:block relative">
-        <Link to="/" className="flex items-center space-x-2 mb-10">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-xl">F</span>
-          </div>
-          <span className="text-xl font-bold">FileZen</span>
-        </Link>
-
-        <nav className="space-y-2">
-          <Link 
-            to="/superadmin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-
-          <Link 
-            to="/superadmin/validate" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <CheckCircle className="w-5 h-5" />
-            <span>Validation établissements</span>
-          </Link>
-
-          <Link 
-            to="/superadmin/establishments" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Building2 className="w-5 h-5" />
-            <span>Gestion établissements</span>
-          </Link>
-
-          <Link 
-            to="/superadmin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques globales</span>
-          </Link>
-
-          <div className="border-t border-white/20 my-4" />
-
-          <Link 
-            to="/superadmin/profile" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <User className="w-5 h-5" />
-            <span>Mon profil</span>
-          </Link>
-
-          <Link 
-            to="/superadmin/settings" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-            <span>Configuration</span>
-          </Link>
-        </nav>
-
-        <div className="absolute bottom-6 left-6 right-6">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start text-white hover:bg-white/10"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            Déconnexion
-          </Button>
-        </div>
-      </aside>
+      <SuperAdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">

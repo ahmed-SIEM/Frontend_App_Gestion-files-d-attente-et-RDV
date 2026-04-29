@@ -8,6 +8,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { gouvernorats } from '../data/constants';
 import { useAuth } from '../contexts/AuthContext';
+import { etablissementsAPI } from '../services/api';
 import { Upload, X, CheckCircle2, FileText, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -142,9 +143,15 @@ export default function SignupEtablissementPage() {
     setLoading(true);
 
     try {
-      // ✅ PRÉPARER LES DONNÉES AVEC LES NOMS BACKEND !
+      // Uploader les fichiers d'abord si présents
+      let documentsUploades = [];
+      const filesAvecFichier = documents.filter(doc => doc.file);
+      if (filesAvecFichier.length > 0) {
+        const uploadResult = await etablissementsAPI.uploadDocuments(filesAvecFichier);
+        documentsUploades = uploadResult.data || [];
+      }
+
       const etablissementData = {
-        // Établissement
         nom_etablissement: formData.nom,
         type: formData.type === 'autre' ? formData.type_autre : formData.type,
         description: formData.description,
@@ -155,30 +162,19 @@ export default function SignupEtablissementPage() {
         telephone_etablissement: formData.telephone,
         email_etablissement: formData.email,
         site_web: formData.site_web || undefined,
-        // Admin
         nom_complet: `${formData.prenom_admin} ${formData.nom_admin}`,
         fonction: formData.poste_admin,
         email_admin: formData.email_admin,
         telephone_admin: formData.telephone_admin,
         mot_de_passe: formData.mot_de_passe_admin,
-        // Documents
-        documents: documents.map(doc => doc.name),
+        documents: documentsUploades,
       };
-
-      console.log('🔍 Données envoyées:', etablissementData);
 
       const result = await signupEtablissement(etablissementData);
 
       if (result.success) {
-        toast.success('✅ Demande envoyée avec succès !', {
-          duration: 3000,
-        });
-        setTimeout(() => {
-          toast.info('Vous recevrez un email de confirmation sous 24-48h après validation', {
-            duration: 5000,
-          });
-          navigate('/login');
-        }, 2000);
+        toast.success('✅ Demande envoyée ! Vérifiez votre email pour confirmer.', { duration: 3000 });
+        navigate(`/verify-email?userId=${result.userId}&email=${encodeURIComponent(result.email)}&type=etablissement`);
       } else {
         toast.error(result.message || 'Erreur lors de l\'envoi de la demande');
       }

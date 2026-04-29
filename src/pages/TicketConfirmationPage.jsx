@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { ticketsAPI } from '../services/api';
@@ -10,7 +11,8 @@ import { toast } from 'sonner';
 export default function TicketConfirmationPage() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
-  
+  const { t, i18n } = useTranslation();
+
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,23 +27,21 @@ export default function TicketConfirmationPage() {
       setTicket(response.data);
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error('Erreur lors du chargement du ticket');
+      toast.error(t('errors.load_data'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleShare = () => {
-    const message = `Mon ticket FileZen #${ticket.numero}\nPosition: ${ticket.position}\nService: ${ticket.service?.nom}\nÉtablissement: ${ticket.etablissement?.nom}`;
-    
+    const message = `${t('ticket_confirmation.share_text')} #${ticket.numero}\n${t('common.service')}: ${ticket.service?.nom}\n${t('common.establishment')}: ${ticket.etablissement?.nom}`;
+
     if (navigator.share) {
-      navigator.share({
-        title: 'Mon Ticket FileZen',
-        text: message,
-      }).catch(err => console.log('Erreur partage:', err));
+      navigator.share({ title: 'Mon Ticket FileZen', text: message })
+        .catch(err => console.log('Erreur partage:', err));
     } else {
       navigator.clipboard.writeText(message);
-      toast.success('Informations copiées dans le presse-papier !');
+      toast.success(t('ticket_confirmation.copy_success'));
     }
   };
 
@@ -59,15 +59,17 @@ export default function TicketConfirmationPage() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-xl font-semibold text-gray-900 mb-2">
-            Ticket non trouvé
+            {t('track_ticket.not_found')}
           </p>
           <Link to="/citoyen/activities">
-            <Button>Voir mes activités</Button>
+            <Button>{t('track_ticket.see_activities')}</Button>
           </Link>
         </div>
       </div>
     );
   }
+
+  const locale = i18n.language === 'ar' ? 'ar-TN' : 'fr-FR';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
@@ -89,14 +91,13 @@ export default function TicketConfirmationPage() {
           </div>
         </motion.div>
 
-        {/* Titre */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="text-4xl font-bold text-center text-gray-900 mb-2"
         >
-          Ticket réservé !
+          {t('ticket_confirmation.title')}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -104,27 +105,24 @@ export default function TicketConfirmationPage() {
           transition={{ delay: 0.5 }}
           className="text-center text-gray-600 mb-8"
         >
-          Votre place dans la file d'attente est confirmée
+          {t('ticket_confirmation.subtitle')}
         </motion.p>
 
-        {/* Card principale */}
         <Card className="p-8 shadow-2xl mb-6 border-t-4 border-blue-600">
-          {/* Numéro du ticket */}
           <div className="text-center mb-6">
-            <p className="text-sm text-gray-600 mb-2">VOTRE TICKET</p>
+            <p className="text-sm text-gray-600 mb-2">{t('ticket_confirmation.your_ticket')}</p>
             <div className="text-8xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
               #{ticket.numero}
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-700 mb-1">Position</p>
+              <p className="text-sm text-blue-700 mb-1">{t('ticket_confirmation.position')}</p>
               <p className="text-2xl font-bold text-blue-900">{ticket.position}ème</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-4">
-              <p className="text-sm text-purple-700 mb-1">Temps estimé</p>
+              <p className="text-sm text-purple-700 mb-1">{t('take_ticket.est_time')}</p>
               <p className="text-2xl font-bold text-purple-900">
                 {ticket.temps_estime_minutes
                   ? `~${Math.floor(ticket.temps_estime_minutes / 60)}h${ticket.temps_estime_minutes % 60 > 0 ? ticket.temps_estime_minutes % 60 + 'min' : ''}`
@@ -133,50 +131,44 @@ export default function TicketConfirmationPage() {
             </div>
           </div>
 
-          {/* Détails */}
           <div className="border-t border-gray-200 pt-6 space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Établissement</span>
+              <span className="text-gray-600">{t('common.establishment')}</span>
               <span className="font-semibold text-gray-900">{ticket.etablissement?.nom}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Service</span>
+              <span className="text-gray-600">{t('common.service')}</span>
               <span className="font-semibold text-gray-900">{ticket.service?.nom}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Heure de prise</span>
+              <span className="text-gray-600">{t('ticket_confirmation.taken_at')}</span>
               <span className="font-semibold text-gray-900">
-                {new Date(ticket.heure_creation).toLocaleTimeString('fr-FR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                {new Date(ticket.heure_creation).toLocaleTimeString(locale, {
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
               </span>
             </div>
           </div>
         </Card>
 
-        {/* Boutons d'action */}
         <div className="grid md:grid-cols-2 gap-4">
           <Button
             onClick={() => navigate(`/citoyen/track-ticket/${ticket._id}`)}
             size="lg"
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
-            Suivre mon ticket
-            <ArrowRight className="w-5 h-5 ml-2" />
+            {t('ticket_confirmation.track_btn')}
+            <ArrowRight className="w-5 h-5 ms-2" />
           </Button>
-          <Button
-            onClick={handleShare}
-            size="lg"
-            variant="outline"
-          >
-            <Share2 className="w-5 h-5 mr-2" />
-            Partager par SMS
+          <Button onClick={handleShare} size="lg" variant="outline">
+            <Share2 className="w-5 h-5 me-2" />
+            {t('ticket_confirmation.share_btn')}
           </Button>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Vous pouvez suivre votre ticket en temps réel depuis "Mes activités"
+          {t('ticket_confirmation.hint')}
         </p>
       </motion.div>
     </div>

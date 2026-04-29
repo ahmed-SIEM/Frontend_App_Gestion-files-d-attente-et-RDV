@@ -4,6 +4,7 @@ import { LogOut, User, Settings } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import NotificationBell from '../components/NotificationBell';
 
 export default function CitoyenLayout() {
   const { user, logout } = useAuth();
@@ -33,7 +34,7 @@ export default function CitoyenLayout() {
             </Link>
 
             {/* Navigation & User Menu */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               {/* Mes Activités Button */}
               <Link to="/citoyen/activities">
                 <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
@@ -41,16 +42,25 @@ export default function CitoyenLayout() {
                 </Button>
               </Link>
 
+              {/* Notifications */}
+              <NotificationBell />
+
               {/* User Dropdown Menu */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">
-                      {user?.prenom?.[0]}{user?.nom?.[0]}
-                    </span>
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                    {user?.photo_profil ? (
+                      <img src={user.photo_profil} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">
+                          {user?.prenom?.[0]}{user?.nom?.[0]}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="hidden md:block text-left">
                     <div className="text-sm font-semibold text-gray-900">

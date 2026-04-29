@@ -14,6 +14,10 @@ import SignupCitoyenPage from './pages/SignupCitoyenPage';
 import SignupEtablissementPage from './pages/SignupEtablissementPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import NotFoundPage from './pages/NotFoundPage';
+import AgentStatsPage from './pages/AgentStatsPage';
+import AgentSetupPasswordPage from './pages/AgentSetupPasswordPage';
 
 // Pages Citoyen
 import CitoyenHomePage from './pages/CitoyenHomePage';
@@ -40,11 +44,12 @@ import AgentDashboard from './pages/AgentDashboard';
 import AgentAppointmentsPage from './pages/AgentAppointmentsPage';
 import AgentProfilePage from './pages/AgentProfilePage';
 
-// Pages Super Admin 
+// Pages Super Admin
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import ValidateEstablishmentsPage from './pages/ValidateEstablishmentsPage';
 import ManageEstablishmentsPage from './pages/ManageEstablishmentsPage';
 import SuperAdminProfilePage from './pages/SuperAdminProfilePage';
+import SuperAdminEstablishmentDetailPage from './pages/SuperAdminEstablishmentDetailPage';
 
 function App() {
   return (
@@ -60,6 +65,8 @@ function App() {
           <Route path="/signup/etablissement" element={<SignupEtablissementPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/agent-setup/:token" element={<AgentSetupPasswordPage />} />
 
           {/* Routes Citoyen avec Layout */}
           <Route
@@ -113,6 +120,7 @@ function App() {
             <Route index element={<Navigate to="/agent/dashboard" replace />} />
             <Route path="dashboard" element={<AgentDashboard />} />
             <Route path="appointments" element={<AgentAppointmentsPage />} />
+            <Route path="stats" element={<AgentStatsPage />} />
             <Route path="profile" element={<AgentProfilePage />} />
           </Route>
 
@@ -129,11 +137,12 @@ function App() {
             <Route path="dashboard" element={<SuperAdminDashboard />} />
             <Route path="validate" element={<ValidateEstablishmentsPage />} />
             <Route path="establishments" element={<ManageEstablishmentsPage />} />
+            <Route path="establishments/:id" element={<SuperAdminEstablishmentDetailPage />} />
             <Route path="profile" element={<SuperAdminProfilePage />} />
           </Route>
 
           {/* Redirection 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

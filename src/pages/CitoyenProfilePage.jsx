@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Save,
   Loader2,
   Camera,
   CheckCircle2
@@ -19,12 +20,28 @@ import { toast } from 'sonner';
 
 export default function CitoyenProfilePage() {
   const { user, updateUser } = useAuth();
+  const { t } = useTranslation();
 
-  const [loading, setLoading] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
 
-  // Infos personnelles
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingPhoto(true);
+      const response = await authAPI.uploadPhotoProfil(file);
+      updateUser(response.data);
+      toast.success(t('citoyen_profile.photo_success'));
+    } catch (error) {
+      toast.error(error.message || t('errors.server'));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const [infos, setInfos] = useState({
     prenom: '',
     nom: '',
@@ -32,7 +49,6 @@ export default function CitoyenProfilePage() {
     telephone: ''
   });
 
-  // Changement mot de passe
   const [passwords, setPasswords] = useState({
     ancien_mot_de_passe: '',
     nouveau_mot_de_passe: '',
@@ -52,26 +68,18 @@ export default function CitoyenProfilePage() {
 
   const handleUpdateInfos = async (e) => {
     e.preventDefault();
-
     if (!infos.prenom.trim() || !infos.nom.trim() || !infos.email.trim()) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+      toast.error(t('citoyen_profile.required_fields'));
       return;
     }
-
     try {
       setSavingInfo(true);
-
-      // Appeler l'API pour mettre à jour les infos
       const response = await authAPI.updateProfile(infos);
-      
-      // Mettre à jour le contexte
       updateUser(response.data);
-
-      toast.success('Informations mises à jour avec succès !');
-
+      toast.success(t('citoyen_profile.info_success'));
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error(error.message || 'Erreur lors de la mise à jour');
+      toast.error(error.message || t('errors.server'));
     } finally {
       setSavingInfo(false);
     }
@@ -79,42 +87,29 @@ export default function CitoyenProfilePage() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-
     if (!passwords.ancien_mot_de_passe || !passwords.nouveau_mot_de_passe) {
-      toast.error('Veuillez remplir tous les champs');
+      toast.error(t('citoyen_profile.all_fields'));
       return;
     }
-
     if (passwords.nouveau_mot_de_passe !== passwords.confirmer_mot_de_passe) {
-      toast.error('Les mots de passe ne correspondent pas');
+      toast.error(t('errors.passwords_not_match'));
       return;
     }
-
     if (passwords.nouveau_mot_de_passe.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères');
+      toast.error(t('errors.password_too_short'));
       return;
     }
-
     try {
       setSavingPassword(true);
-
       await authAPI.changePassword({
         ancien_mot_de_passe: passwords.ancien_mot_de_passe,
         nouveau_mot_de_passe: passwords.nouveau_mot_de_passe
       });
-
-      toast.success('Mot de passe modifié avec succès !');
-
-      // Réinitialiser les champs
-      setPasswords({
-        ancien_mot_de_passe: '',
-        nouveau_mot_de_passe: '',
-        confirmer_mot_de_passe: ''
-      });
-
+      toast.success(t('citoyen_profile.password_success'));
+      setPasswords({ ancien_mot_de_passe: '', nouveau_mot_de_passe: '', confirmer_mot_de_passe: '' });
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error(error.message || 'Erreur lors du changement de mot de passe');
+      toast.error(error.message || t('errors.server'));
     } finally {
       setSavingPassword(false);
     }
@@ -122,38 +117,46 @@ export default function CitoyenProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Mon Profil</h1>
-        <p className="text-gray-600">Gérez vos informations personnelles</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('citoyen_profile.title')}</h1>
+        <p className="text-gray-600">{t('citoyen_profile.subtitle')}</p>
       </motion.div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Sidebar - Avatar et infos de base */}
+        {/* Sidebar - Avatar */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Card className="p-6 text-center">
-            {/* Avatar */}
             <div className="relative inline-block mb-4">
-              <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                {user?.prenom?.[0]}{user?.nom?.[0]}
-              </div>
-              <button className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border-2 border-gray-200">
-                <Camera className="w-5 h-5 text-gray-600" />
+              {user?.photo_profil ? (
+                <img src={user.photo_profil} alt={t('citoyen_profile.title')} className="w-32 h-32 rounded-full object-cover" />
+              ) : (
+                <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                  {user?.prenom?.[0]}{user?.nom?.[0]}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border-2 border-gray-200"
+              >
+                {uploadingPhoto ? <Loader2 className="w-5 h-5 text-gray-600 animate-spin" /> : <Camera className="w-5 h-5 text-gray-600" />}
               </button>
+              <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 mb-1">
               {user?.prenom} {user?.nom}
             </h2>
-            <Badge className="bg-blue-600 mb-4">Citoyen</Badge>
+            <Badge className="bg-blue-600 mb-4">{t('citoyen_profile.citizen_badge')}</Badge>
 
             <div className="pt-4 border-t space-y-3 text-sm text-left">
               <div className="flex items-center space-x-2 text-gray-600">
@@ -180,15 +183,15 @@ export default function CitoyenProfilePage() {
           >
             <Card className="p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <User className="w-5 h-5 mr-2 text-blue-600" />
-                Informations personnelles
+                <User className="w-5 h-5 me-2 text-blue-600" />
+                {t('citoyen_profile.personal_info')}
               </h3>
 
               <form onSubmit={handleUpdateInfos} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prénom *
+                      {t('signup_citizen.firstname')} *
                     </label>
                     <input
                       type="text"
@@ -198,10 +201,9 @@ export default function CitoyenProfilePage() {
                       required
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom *
+                      {t('signup_citizen.lastname')} *
                     </label>
                     <input
                       type="text"
@@ -215,7 +217,7 @@ export default function CitoyenProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
+                    {t('signup_citizen.email')} *
                   </label>
                   <input
                     type="email"
@@ -228,7 +230,7 @@ export default function CitoyenProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Téléphone
+                    {t('signup_citizen.phone')}
                   </label>
                   <input
                     type="tel"
@@ -247,13 +249,13 @@ export default function CitoyenProfilePage() {
                   >
                     {savingInfo ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Enregistrement...
+                        <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                        {t('citoyen_profile.saving')}
                       </>
                     ) : (
                       <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Enregistrer les modifications
+                        <Save className="w-4 h-4 me-2" />
+                        {t('citoyen_profile.save_changes')}
                       </>
                     )}
                   </Button>
@@ -270,14 +272,14 @@ export default function CitoyenProfilePage() {
           >
             <Card className="p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <Lock className="w-5 h-5 mr-2 text-blue-600" />
-                Changer le mot de passe
+                <Lock className="w-5 h-5 me-2 text-blue-600" />
+                {t('citoyen_profile.change_password_title')}
               </h3>
 
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mot de passe actuel *
+                    {t('profile.current_password')} *
                   </label>
                   <input
                     type="password"
@@ -290,7 +292,7 @@ export default function CitoyenProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nouveau mot de passe *
+                    {t('profile.new_password')} *
                   </label>
                   <input
                     type="password"
@@ -300,14 +302,12 @@ export default function CitoyenProfilePage() {
                     minLength={6}
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Minimum 6 caractères
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{t('citoyen_profile.password_min')}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirmer le nouveau mot de passe *
+                    {t('citoyen_profile.confirm_new_password')} *
                   </label>
                   <input
                     type="password"
@@ -327,13 +327,13 @@ export default function CitoyenProfilePage() {
                   >
                     {savingPassword ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Modification...
+                        <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                        {t('citoyen_profile.changing')}
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Changer le mot de passe
+                        <CheckCircle2 className="w-4 h-4 me-2" />
+                        {t('citoyen_profile.change_btn')}
                       </>
                     )}
                   </Button>

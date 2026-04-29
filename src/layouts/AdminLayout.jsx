@@ -41,7 +41,7 @@ export default function AdminLayout() {
                   Agents
                 </Button>
               </Link>
-              <Link to="/admin/settings">
+              <Link to="/admin/profile">
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Paramètres

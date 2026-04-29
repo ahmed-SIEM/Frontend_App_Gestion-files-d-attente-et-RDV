@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: response.message };
     } catch (error) {
       console.error('Erreur login:', error);
-      return { success: false, message: error.message };
+      return { success: false, message: error.message, code: error.code, userId: error.userId };
     }
   };
 
@@ -79,25 +79,49 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  // Signup Citoyen
+  // Signup Citoyen — retourne userId/email pour la page de vérification
   const signupCitoyen = async (userData) => {
     try {
       const response = await authAPI.signupCitoyen(userData);
-      
+
       if (response.success) {
-        const { user, token } = response.data;
-        
-        // ⭐ Signup = toujours localStorage (pas besoin de se reconnecter)
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        setUser(user);
-        
-        return { success: true, user };
+        return { success: true, userId: response.data.userId, email: response.data.email };
       }
-      
+
       return { success: false, message: response.message };
     } catch (error) {
       console.error('Erreur signup:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // Vérifier email avec code OTP
+  const verifierEmail = async (userId, code) => {
+    try {
+      const response = await authAPI.verifyEmail(userId, code);
+
+      if (response.success && response.data?.token) {
+        // Citoyen → auto-login
+        const { user, token } = response.data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+        return { success: true, user, autoLogin: true };
+      }
+
+      return { success: response.success, message: response.message, autoLogin: false };
+    } catch (error) {
+      console.error('Erreur vérification email:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // Renvoyer code de vérification
+  const renvoyerCode = async (userId) => {
+    try {
+      const response = await authAPI.resendCode(userId);
+      return { success: response.success, message: response.message };
+    } catch (error) {
       return { success: false, message: error.message };
     }
   };
@@ -106,12 +130,11 @@ export function AuthProvider({ children }) {
   const signupEtablissement = async (userData) => {
     try {
       const response = await authAPI.signupEtablissement(userData);
-      
+
       if (response.success) {
-        // Pour établissement, pas de login automatique (en attente de validation)
-        return { success: true, message: response.message };
+        return { success: true, message: response.message, userId: response.data?.userId, email: response.data?.email };
       }
-      
+
       return { success: false, message: response.message };
     } catch (error) {
       console.error('Erreur signup établissement:', error);
@@ -138,6 +161,8 @@ export function AuthProvider({ children }) {
     logout,
     signupCitoyen,
     signupEtablissement,
+    verifierEmail,
+    renvoyerCode,
     updateUser,
     isAuthenticated: !!user,
   };

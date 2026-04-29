@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Police arabe Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap');
+
+/* RTL global — s'applique automatiquement quand dir="rtl" est sur <html> */
+[dir="rtl"] {
+  font-family: 'Noto Sans Arabic', 'Inter', Arial, sans-serif;
+  letter-spacing: 0;
+}
+
+/* Transitions douces lors du changement de langue */
+* {
+  transition: font-family 0.1s ease;
+}
+
 
 :root {
   --font-size: 16px;

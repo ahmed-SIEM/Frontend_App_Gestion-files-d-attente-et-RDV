@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/AuthContext';
-import { servicesAPI, etablissementsAPI } from '../services/api';
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  Users, 
-  Clock, 
-  Calendar as CalendarIcon, 
-  BarChart3,
+import { servicesAPI } from '../services/api';
+import {
+  Wrench,
   Plus,
   Edit2,
   Trash2,
@@ -20,6 +14,7 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react';
+import AdminSidebar from '../components/AdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -36,9 +31,6 @@ import {
 
 export default function ManageServicesPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const [establishment, setEstablishment] = useState(null);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -60,12 +52,7 @@ export default function ManageServicesPage() {
     try {
       setLoading(true);
       
-      const [estResponse, servicesResponse] = await Promise.all([
-        etablissementsAPI.getById(user.etablissement),
-        servicesAPI.getByEtablissement(user.etablissement)
-      ]);
-      
-      setEstablishment(estResponse.data);
+      const servicesResponse = await servicesAPI.getByEtablissement(user.etablissement_id);
       setServices(servicesResponse.data);
       
     } catch (error) {
@@ -123,7 +110,7 @@ export default function ManageServicesPage() {
         // Créer
         await servicesAPI.create({
           ...formData,
-          etablissement: user.etablissement
+          etablissement: user.etablissement_id
         });
         toast.success('Service créé avec succès !');
       }
@@ -182,63 +169,7 @@ export default function ManageServicesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-purple-900 to-purple-700 text-white p-6 hidden lg:block">
-        <div className="mb-10">
-          <p className="text-sm text-white/70 mb-1">Établissement</p>
-          <p className="font-bold">{establishment?.nom || 'Mon Établissement'}</p>
-        </div>
-        
-        <nav className="space-y-2">
-          <Link 
-            to="/admin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-          
-          <Link 
-            to="/admin/services" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <Wrench className="w-5 h-5" />
-            <span>Gestion Services</span>
-          </Link>
-          
-          <Link 
-            to="/admin/agents" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Users className="w-5 h-5" />
-            <span>Gestion Agents</span>
-          </Link>
-          
-          <Link 
-            to="/admin/hours" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Horaires & Pauses</span>
-          </Link>
-          
-          <Link 
-            to="/admin/appointments-config" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <CalendarIcon className="w-5 h-5" />
-            <span>Configuration RDV</span>
-          </Link>
-          
-          <Link 
-            to="/admin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques</span>
-          </Link>
-        </nav>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">

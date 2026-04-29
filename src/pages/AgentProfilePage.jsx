@@ -1,32 +1,45 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Save,
   Loader2,
   Camera,
-  CheckCircle2,
-  LayoutDashboard,
-  Calendar,
-  LogOut
+  CheckCircle2
 } from 'lucide-react';
+import AgentSidebar from '../components/AgentSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function AgentProfilePage() {
-  const { user, updateUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
 
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingPhoto(true);
+      const response = await authAPI.uploadPhotoProfil(file);
+      updateUser(response.data);
+      toast.success('Photo de profil mise à jour !');
+    } catch (error) {
+      toast.error(error.message || 'Erreur lors de l\'upload');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   // Infos personnelles
   const [infos, setInfos] = useState({
@@ -113,61 +126,9 @@ export default function AgentProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-green-900 to-green-700 text-white p-6 hidden lg:block relative">
-        <Link to="/" className="flex items-center space-x-2 mb-10">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-xl">F</span>
-          </div>
-          <span className="text-xl font-bold">FileZen</span>
-        </Link>
-
-        <nav className="space-y-2">
-          <Link 
-            to="/agent/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>File d'attente</span>
-          </Link>
-
-          <Link 
-            to="/agent/appointments" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Calendar className="w-5 h-5" />
-            <span>Rendez-vous</span>
-          </Link>
-
-          <div className="border-t border-white/20 my-4" />
-
-          <Link 
-            to="/agent/profile" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <User className="w-5 h-5" />
-            <span>Mon profil</span>
-          </Link>
-        </nav>
-
-        <div className="absolute bottom-6 left-6 right-6">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start text-white hover:bg-white/10"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            Déconnexion
-          </Button>
-        </div>
-      </aside>
+      <AgentSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -190,12 +151,22 @@ export default function AgentProfilePage() {
                 <Card className="p-6 text-center">
                   {/* Avatar */}
                   <div className="relative inline-block mb-4">
-                    <div className="w-32 h-32 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                      {user?.prenom?.[0]}{user?.nom?.[0]}
-                    </div>
-                    <button className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border-2 border-gray-200">
-                      <Camera className="w-5 h-5 text-gray-600" />
+                    {user?.photo_profil ? (
+                      <img src={user.photo_profil} alt="Photo de profil" className="w-32 h-32 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-32 h-32 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                        {user?.prenom?.[0]}{user?.nom?.[0]}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border-2 border-gray-200"
+                    >
+                      {uploadingPhoto ? <Loader2 className="w-5 h-5 text-gray-600 animate-spin" /> : <Camera className="w-5 h-5 text-gray-600" />}
                     </button>
+                    <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                   </div>
 
                   <h2 className="text-xl font-bold text-gray-900 mb-1">

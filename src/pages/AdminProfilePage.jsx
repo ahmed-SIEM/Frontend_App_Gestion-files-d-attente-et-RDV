@@ -1,36 +1,71 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { authAPI } from '../services/api';
+import { authAPI, etablissementsAPI } from '../services/api';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Save,
   Loader2,
   Camera,
   CheckCircle2,
-  LayoutDashboard,
-  Clock,
-  Briefcase,
-  Users,
-  Calendar,
-  BarChart3,
-  LogOut
+  Building2
 } from 'lucide-react';
+import AdminSidebar from '../components/AdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function AdminProfilePage() {
-  const { user, updateUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
 
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(null);
+  const photoInputRef = useRef(null);
+  const logoInputRef = useRef(null);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingPhoto(true);
+      const response = await authAPI.uploadPhotoProfil(file);
+      updateUser(response.data);
+      toast.success('Photo de profil mise à jour !');
+    } catch (error) {
+      toast.error(error.message || 'Erreur lors de l\'upload');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingLogo(true);
+      const response = await etablissementsAPI.uploadPhotoEtablissement(file);
+      setLogoUrl(response.photo_url || response.data?.photo);
+      toast.success('Logo de l\'établissement mis à jour !');
+    } catch (error) {
+      toast.error(error.message || 'Erreur lors de l\'upload du logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  useEffect(() => {
+    etablissementsAPI.getMonEtablissement().then(res => {
+      setLogoUrl(res.data?.photo || null);
+    }).catch(() => {});
+  }, []);
 
   // Infos personnelles
   const [infos, setInfos] = useState({
@@ -117,93 +152,9 @@ export default function AdminProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white p-6 hidden lg:block relative">
-        <Link to="/" className="flex items-center space-x-2 mb-10">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-xl">F</span>
-          </div>
-          <span className="text-xl font-bold">FileZen</span>
-        </Link>
-
-        <nav className="space-y-2">
-          <Link 
-            to="/admin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Dashboard</span>
-          </Link>
-
-          <Link 
-            to="/admin/hours" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Horaires & Pauses</span>
-          </Link>
-
-          <Link 
-            to="/admin/services" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Briefcase className="w-5 h-5" />
-            <span>Gestion Services</span>
-          </Link>
-
-          <Link 
-            to="/admin/agents" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Users className="w-5 h-5" />
-            <span>Gestion Agents</span>
-          </Link>
-
-          <Link 
-            to="/admin/appointments-config" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Calendar className="w-5 h-5" />
-            <span>Configuration RDV</span>
-          </Link>
-
-          <Link 
-            to="/admin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques</span>
-          </Link>
-
-          <div className="border-t border-white/20 my-4" />
-
-          <Link 
-            to="/admin/profile" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <User className="w-5 h-5" />
-            <span>Mon profil</span>
-          </Link>
-        </nav>
-
-        <div className="absolute bottom-6 left-6 right-6">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start text-white hover:bg-white/10"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            Déconnexion
-          </Button>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -226,12 +177,22 @@ export default function AdminProfilePage() {
                 <Card className="p-6 text-center">
                   {/* Avatar */}
                   <div className="relative inline-block mb-4">
-                    <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-blue-800 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                      {user?.prenom?.[0]}{user?.nom?.[0]}
-                    </div>
-                    <button className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border-2 border-gray-200">
-                      <Camera className="w-5 h-5 text-gray-600" />
+                    {user?.photo_profil ? (
+                      <img src={user.photo_profil} alt="Photo de profil" className="w-32 h-32 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-blue-800 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                        {user?.prenom?.[0]}{user?.nom?.[0]}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border-2 border-gray-200"
+                    >
+                      {uploadingPhoto ? <Loader2 className="w-5 h-5 text-gray-600 animate-spin" /> : <Camera className="w-5 h-5 text-gray-600" />}
                     </button>
+                    <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                   </div>
 
                   <h2 className="text-xl font-bold text-gray-900 mb-1">
@@ -250,6 +211,33 @@ export default function AdminProfilePage() {
                         <span>{user.telephone}</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Logo établissement */}
+                  <div className="pt-4 border-t mt-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5" /> Logo établissement
+                    </p>
+                    <div className="relative inline-block">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-xl object-cover border-2 border-gray-100 shadow" />
+                      ) : (
+                        <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                          <Building2 className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                        className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 border border-gray-200"
+                        title="Changer le logo"
+                      >
+                        {uploadingLogo ? <Loader2 className="w-3.5 h-3.5 text-gray-600 animate-spin" /> : <Camera className="w-3.5 h-3.5 text-gray-600" />}
+                      </button>
+                      <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">Visible par les citoyens</p>
                   </div>
                 </Card>
               </motion.div>

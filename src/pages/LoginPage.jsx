@@ -9,10 +9,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, user, isAuthenticated } = useAuth(); // ⭐ Ajoute user, isAuthenticated
+  const { login, user, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +46,7 @@ export default function LoginPage() {
       const result = await login(email, password, rememberMe); // ⭐ Passe rememberMe
       
       if (result.success) {
-        toast.success('Connexion réussie !');
+        toast.success(t('login.success'));
         
         // Redirection selon le rôle
         const role = result.user.role;
@@ -57,11 +60,14 @@ export default function LoginPage() {
         } else if (role === 'citoyen') {
           navigate('/citoyen/home');
         }
+      } else if (result.code === 'EMAIL_NOT_VERIFIED') {
+        toast.error(result.message);
+        navigate(`/verify-email?userId=${result.userId}&email=${encodeURIComponent(email)}`);
       } else {
-        toast.error(result.message || 'Erreur de connexion');
+        toast.error(result.message || t('login.error'));
       }
     } catch (error) {
-      toast.error('Erreur de connexion');
+      toast.error(t('login.error'));
     } finally {
       setLoading(false);
     }
@@ -84,10 +90,8 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-5xl font-bold mb-6">Bon retour sur FileZen</h1>
-            <p className="text-xl text-white/80 mb-12">
-              Connectez-vous pour accéder à votre espace et gérer vos files d'attente et rendez-vous
-            </p>
+            <h1 className="text-5xl font-bold mb-6">{t('login.welcome_back')}</h1>
+            <p className="text-xl text-white/80 mb-12">{t('login.welcome_sub')}</p>
           </motion.div>
 
           <motion.div
@@ -127,23 +131,26 @@ export default function LoginPage() {
               </span>
             </div>
 
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">Connexion</h2>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-gray-900">{t('login.title')}</h2>
+              <LanguageSwitcher />
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('login.email')}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre.email@exemple.com"
+                  placeholder={t('login.email_placeholder')}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password">{t('login.password')}</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -171,14 +178,11 @@ export default function LoginPage() {
                     onCheckedChange={(checked) => setRememberMe(checked)}
                   />
                   <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
-                    Se souvenir de moi
+                    {t('login.remember_me')}
                   </label>
                 </div>
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Mot de passe oublié ?
+                <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  {t('login.forgot_password')}
                 </Link>
               </div>
 
@@ -187,24 +191,24 @@ export default function LoginPage() {
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 disabled={loading}
               >
-                {loading ? 'Connexion...' : 'Se connecter'}
+                {loading ? t('login.loading') : t('login.submit')}
               </Button>
             </form>
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">ou</span>
+                <span className="px-2 bg-white text-gray-500">{t('login.or')}</span>
               </div>
             </div>
 
             <div className="text-center">
               <p className="text-gray-600">
-                Pas de compte ?{' '}
+                {t('login.no_account')}{' '}
                 <Link to="/account-type" className="text-blue-600 hover:underline font-semibold">
-                  Créer un compte
+                  {t('login.create_account')}
                 </Link>
               </p>
             </div>

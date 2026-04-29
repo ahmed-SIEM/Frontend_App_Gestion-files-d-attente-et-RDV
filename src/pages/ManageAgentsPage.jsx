@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/AuthContext';
-import { agentsAPI, servicesAPI, etablissementsAPI } from '../services/api';
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  Users, 
-  Clock, 
-  Calendar as CalendarIcon, 
-  BarChart3,
+import { agentsAPI, servicesAPI } from '../services/api';
+import {
+  Wrench,
   Plus,
   Edit2,
   Trash2,
@@ -19,8 +13,10 @@ import {
   Mail,
   Phone,
   UserPlus,
+  Users,
   X
 } from 'lucide-react';
+import AdminSidebar from '../components/AdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -37,9 +33,7 @@ import {
 
 export default function ManageAgentsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const [establishment, setEstablishment] = useState(null);
   const [agents, setAgents] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +44,6 @@ export default function ManageAgentsPage() {
     nom: '',
     email: '',
     telephone: '',
-    mot_de_passe: '',
     service: ''
   });
   const [submitting, setSubmitting] = useState(false);
@@ -63,13 +56,11 @@ export default function ManageAgentsPage() {
     try {
       setLoading(true);
       
-      const [estResponse, agentsResponse, servicesResponse] = await Promise.all([
-        etablissementsAPI.getById(user.etablissement),
-        agentsAPI.getByEtablissement(user.etablissement),
-        servicesAPI.getByEtablissement(user.etablissement)
+      const [agentsResponse, servicesResponse] = await Promise.all([
+        agentsAPI.getByEtablissement(user.etablissement_id),
+        servicesAPI.getByEtablissement(user.etablissement_id)
       ]);
-      
-      setEstablishment(estResponse.data);
+
       setAgents(agentsResponse.data);
       setServices(servicesResponse.data);
       
@@ -89,8 +80,7 @@ export default function ManageAgentsPage() {
         nom: agent.nom,
         email: agent.email,
         telephone: agent.telephone,
-        mot_de_passe: '',
-        service: agent.service?._id || ''
+        service: agent.service_id?._id || agent.service_id || ''
       });
     } else {
       setEditingAgent(null);
@@ -99,7 +89,6 @@ export default function ManageAgentsPage() {
         nom: '',
         email: '',
         telephone: '',
-        mot_de_passe: '',
         service: ''
       });
     }
@@ -119,33 +108,23 @@ export default function ManageAgentsPage() {
       return;
     }
 
-    if (!editingAgent && !formData.mot_de_passe) {
-      toast.error('Le mot de passe est requis pour créer un agent');
-      return;
-    }
-
     try {
       setSubmitting(true);
 
       const dataToSend = {
-        ...formData,
-        etablissement: user.etablissement,
-        role: 'agent'
+        prenom: formData.prenom,
+        nom: formData.nom,
+        email: formData.email,
+        telephone: formData.telephone,
+        service_id: formData.service || undefined,
       };
 
-      // Si on modifie et qu'il n'y a pas de nouveau mot de passe, ne pas l'envoyer
-      if (editingAgent && !formData.mot_de_passe) {
-        delete dataToSend.mot_de_passe;
-      }
-
       if (editingAgent) {
-        // Modifier
         await agentsAPI.update(editingAgent._id, dataToSend);
         toast.success('Agent modifié avec succès !');
       } else {
-        // Créer
         await agentsAPI.create(dataToSend);
-        toast.success('Agent créé avec succès ! Un email a été envoyé avec les identifiants.');
+        toast.success('Invitation envoyée ! L\'agent recevra un email pour créer son mot de passe.');
       }
 
       handleCloseModal();
@@ -191,63 +170,7 @@ export default function ManageAgentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-purple-900 to-purple-700 text-white p-6 hidden lg:block">
-        <div className="mb-10">
-          <p className="text-sm text-white/70 mb-1">Établissement</p>
-          <p className="font-bold">{establishment?.nom || 'Mon Établissement'}</p>
-        </div>
-        
-        <nav className="space-y-2">
-          <Link 
-            to="/admin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-          
-          <Link 
-            to="/admin/services" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Wrench className="w-5 h-5" />
-            <span>Gestion Services</span>
-          </Link>
-          
-          <Link 
-            to="/admin/agents" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <Users className="w-5 h-5" />
-            <span>Gestion Agents</span>
-          </Link>
-          
-          <Link 
-            to="/admin/hours" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Horaires & Pauses</span>
-          </Link>
-          
-          <Link 
-            to="/admin/appointments-config" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <CalendarIcon className="w-5 h-5" />
-            <span>Configuration RDV</span>
-          </Link>
-          
-          <Link 
-            to="/admin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques</span>
-          </Link>
-        </nav>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -328,11 +251,11 @@ export default function ManageAgentsPage() {
                                 {agent.telephone}
                               </div>
                             )}
-                            {agent.service ? (
+                            {agent.service_id ? (
                               <div className="flex items-center">
                                 <Wrench className="w-4 h-4 mr-2 text-purple-600" />
                                 <span className="font-medium text-purple-600">
-                                  {agent.service.nom}
+                                  {agent.service_id?.nom || agent.service_id}
                                 </span>
                               </div>
                             ) : (
@@ -344,7 +267,7 @@ export default function ManageAgentsPage() {
                           </div>
 
                           {/* Assigner service */}
-                          {!agent.service && services.length > 0 && (
+                          {!agent.service_id && services.length > 0 && (
                             <div className="mt-4">
                               <select
                                 onChange={(e) => handleAssignService(agent._id, e.target.value)}
@@ -430,6 +353,13 @@ export default function ManageAgentsPage() {
               </button>
             </div>
 
+            {!editingAgent && (
+              <div className="mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-start gap-2">
+                <span className="text-lg">📧</span>
+                <span>L'agent recevra un email avec un lien sécurisé pour créer son propre mot de passe.</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Prénom & Nom */}
               <div className="grid md:grid-cols-2 gap-4">
@@ -488,26 +418,6 @@ export default function ManageAgentsPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder="+216 XX XXX XXX"
                 />
-              </div>
-
-              {/* Mot de passe */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mot de passe {!editingAgent && '*'}
-                </label>
-                <input
-                  type="password"
-                  value={formData.mot_de_passe}
-                  onChange={(e) => setFormData({ ...formData, mot_de_passe: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder={editingAgent ? 'Laisser vide pour ne pas changer' : 'Mot de passe'}
-                  required={!editingAgent}
-                />
-                {editingAgent && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Laissez vide si vous ne voulez pas changer le mot de passe
-                  </p>
-                )}
               </div>
 
               {/* Service */}

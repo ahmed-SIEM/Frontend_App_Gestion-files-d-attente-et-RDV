@@ -13,7 +13,7 @@ import { Button } from '../components/ui/button';
 import { useState, useEffect } from 'react';
 import { etablissementsAPI } from '../services/api';
 
-export default function AdminLayout() {
+export default function AgentLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [establishment, setEstablishment] = useState(null);
@@ -24,7 +24,7 @@ export default function AdminLayout() {
 
   const fetchEstablishment = async () => {
     try {
-      const response = await etablissementsAPI.getById(user.etablissement);
+      const response = await etablissementsAPI.getById(user.etablissement_id);
       setEstablishment(response.data);
     } catch (error) {
       console.error('Erreur:', error);

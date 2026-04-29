@@ -1,22 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/AuthContext';
 import { etablissementsAPI } from '../services/api';
-import { 
-  Building2, 
-  LayoutDashboard, 
-  CheckCircle, 
-  BarChart3, 
-  Settings,
+import {
+  Building2,
   Loader2,
   Eye,
   Ban,
   Play,
   AlertCircle
 } from 'lucide-react';
+import SuperAdminSidebar from '../components/SuperAdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -49,8 +46,8 @@ export default function ManageEstablishmentsPage() {
     try {
       setLoading(true);
       
-      // Récupérer tous les établissements (actifs + suspendus)
-      const response = await etablissementsAPI.getAll();
+      // Récupérer tous les établissements (tous statuts)
+      const response = await etablissementsAPI.getAllAdmin();
       setEstablishments(response.data);
       
     } catch (error) {
@@ -124,57 +121,7 @@ export default function ManageEstablishmentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white p-6 hidden lg:block">
-        <Link to="/" className="flex items-center space-x-2 mb-10">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-xl">F</span>
-          </div>
-          <span className="text-xl font-bold">FileZen</span>
-        </Link>
-        
-        <nav className="space-y-2">
-          <Link 
-            to="/superadmin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/validate" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <CheckCircle className="w-5 h-5" />
-            <span>Validation établissements</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/establishments" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <Building2 className="w-5 h-5" />
-            <span>Gestion établissements</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques globales</span>
-          </Link>
-          
-          <Link 
-            to="/superadmin/settings" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-            <span>Configuration</span>
-          </Link>
-        </nav>
-      </aside>
+      <SuperAdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">

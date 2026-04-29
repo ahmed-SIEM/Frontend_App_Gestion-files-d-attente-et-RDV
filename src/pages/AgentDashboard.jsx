@@ -1,22 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/AuthContext';
 import { ticketsAPI, servicesAPI } from '../services/api';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  BarChart3, 
-  Settings, 
-  Play, 
-  Pause,
+import {
+  Calendar,
+  Play,
   Loader2,
   CheckCircle2,
   XCircle,
   AlertCircle
 } from 'lucide-react';
+import AgentSidebar from '../components/AgentSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -33,17 +31,20 @@ import {
 export default function AgentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const [service, setService] = useState(null);
   const [fileAttente, setFileAttente] = useState(null);
   const [ticketEnCours, setTicketEnCours] = useState(null);
   const [ticketsEnAttente, setTicketsEnAttente] = useState([]);
+  const [agentStats, setAgentStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [calling, setCalling] = useState(false);
   const [showAbsentDialog, setShowAbsentDialog] = useState(false);
   const [showServiDialog, setShowServiDialog] = useState(false);
 
-  // Auto-refresh toutes les 5 secondes
+  const locale = i18n.language === 'ar' ? 'ar-TN' : 'fr-FR';
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 5000);
@@ -52,27 +53,25 @@ export default function AgentDashboard() {
 
   const fetchData = async () => {
     try {
-      if (!loading) setLoading(false); // Pas de loader si c'est un refresh
+      const [serviceResponse, fileResponse, statsResponse] = await Promise.all([
+        servicesAPI.getById(user.service_id),
+        ticketsAPI.getByService(user.service_id),
+        ticketsAPI.getStatsAgent().catch(() => ({ data: null })),
+      ]);
 
-      // Récupérer le service de l'agent
-      const serviceResponse = await servicesAPI.getById(user.service);
       setService(serviceResponse.data);
-
-      // Récupérer la file d'attente
-      const fileResponse = await ticketsAPI.getByService(user.service);
       setFileAttente(fileResponse.data.file);
-      
-      // Ticket actuellement appelé (appele)
+      if (statsResponse.data) setAgentStats(statsResponse.data);
+
       const ticketAppele = fileResponse.data.tickets.find(t => t.statut === 'appele');
       setTicketEnCours(ticketAppele);
 
-      // Tickets en attente
       const ticketsAttente = fileResponse.data.tickets.filter(t => t.statut === 'en_attente');
       setTicketsEnAttente(ticketsAttente);
 
     } catch (error) {
       console.error('Erreur:', error);
-      if (loading) toast.error('Erreur lors du chargement des données');
+      if (loading) toast.error(t('errors.load_data'));
     } finally {
       setLoading(false);
     }
@@ -81,15 +80,12 @@ export default function AgentDashboard() {
   const handleAppelerSuivant = async () => {
     try {
       setCalling(true);
-      
-      await ticketsAPI.appelerSuivant(user.service);
-      
-      toast.success('Ticket appelé !');
+      await ticketsAPI.appelerSuivant(user.service_id);
+      toast.success(t('agent.ticket_called'));
       fetchData();
-      
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error(error.message || 'Erreur lors de l\'appel du ticket');
+      toast.error(error.message || t('agent.error_call'));
     } finally {
       setCalling(false);
     }
@@ -97,53 +93,39 @@ export default function AgentDashboard() {
 
   const handleMarquerServi = async () => {
     if (!ticketEnCours) return;
-
     try {
       await ticketsAPI.marquerServi(ticketEnCours._id);
-      
-      toast.success('Ticket marqué comme servi !');
+      toast.success(t('agent.success_served'));
       setShowServiDialog(false);
       fetchData();
-      
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error('Erreur lors du marquage');
+      toast.error(t('agent.error_mark'));
     }
   };
 
   const handleMarquerAbsent = async () => {
     if (!ticketEnCours) return;
-
     try {
       await ticketsAPI.marquerAbsent(ticketEnCours._id);
-      
-      toast.success('Citoyen marqué comme absent');
+      toast.success(t('agent.success_absent'));
       setShowAbsentDialog(false);
       fetchData();
-      
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error('Erreur lors du marquage');
+      toast.error(t('agent.error_mark'));
     }
   };
 
   const calculateStats = () => {
-    // Stats du jour (à partir de la file d'attente)
-    const ticketsServisAujourdhui = fileAttente?.tickets_servis_aujourdhui || 0;
-    const ticketsEnAttente = ticketsEnAttente.length;
-    
-    // Calculer le temps moyen (placeholder - à implémenter)
-    const tempsMoyen = '~12min'; // TODO: Calculer depuis les tickets servis
-    
-    // Calculer les absents (placeholder)
-    const absents = 0; // TODO: Compter les tickets absents aujourd'hui
-    
-    return {
-      en_attente: ticketsEnAttente,
-      servis_aujourdhui: ticketsServisAujourdhui,
-      temps_moyen: tempsMoyen,
-      absents
-    };
+    const servis_aujourdhui = agentStats?.tickets_traites ?? fileAttente?.tickets_servis_aujourdhui ?? 0;
+    const en_attente = ticketsEnAttente.length;
+    const absents = agentStats?.tickets_no_show ?? 0;
+    const temps_moyen = agentStats?.temps_moyen_minutes
+      ? `~${agentStats.temps_moyen_minutes}min`
+      : servis_aujourdhui > 0 ? `~${service?.temps_traitement_moyen || 15}min` : '—';
+
+    return { en_attente, servis_aujourdhui, temps_moyen, absents };
   };
 
   if (loading) {
@@ -158,93 +140,49 @@ export default function AgentDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-green-900 to-green-700 text-white p-6 hidden lg:block">
-        <div className="mb-10">
-          <p className="text-sm text-white/70 mb-1">Agent</p>
-          <p className="font-bold">{service?.nom || 'Mon Service'}</p>
-          <p className="text-sm text-white/70">Guichet {user?.guichet || '-'}</p>
-        </div>
-        
-        <nav className="space-y-2">
-          <Link 
-            to="/agent/dashboard" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>File d'attente</span>
-          </Link>
-          
-          <Link 
-            to="/agent/appointments" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Calendar className="w-5 h-5" />
-            <span>Rendez-vous</span>
-          </Link>
-          
-          <Link 
-            to="/agent/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Mes statistiques</span>
-          </Link>
-          
-          <Link 
-            to="/agent/settings" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-            <span>Paramètres</span>
-          </Link>
-        </nav>
-      </aside>
+      <AgentSidebar serviceName={service?.nom} />
 
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Header */}
         <header className="bg-white shadow-sm sticky top-0 z-10">
           <div className="px-8 py-4 flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                File d'Attente - {service?.nom}
+                {t('agent.queue_title')} — {service?.nom}
               </h1>
-              <p className="text-gray-600">Guichet {user?.guichet || '-'}</p>
+              <p className="text-gray-600">{t('agent.guichet', { num: user?.numero_guichet || '-' })}</p>
             </div>
-            <Badge className="bg-green-600 animate-pulse">File Active</Badge>
+            <Badge className="bg-green-600 animate-pulse">{t('agent.active_queue')}</Badge>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="p-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-4 mb-8">
             <Card className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">En attente</p>
+              <p className="text-sm text-gray-600 mb-1">{t('agent.waiting_count')}</p>
               <p className="text-3xl font-bold text-gray-900">{stats.en_attente}</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Servis aujourd'hui</p>
+              <p className="text-sm text-gray-600 mb-1">{t('agent.served_today')}</p>
               <p className="text-3xl font-bold text-gray-900">{stats.servis_aujourdhui}</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Temps moyen</p>
+              <p className="text-sm text-gray-600 mb-1">{t('agent.avg_time')}</p>
               <p className="text-3xl font-bold text-gray-900">{stats.temps_moyen}</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Absents</p>
+              <p className="text-sm text-gray-600 mb-1">{t('agent.absent_today')}</p>
               <p className="text-3xl font-bold text-gray-900">{stats.absents}</p>
             </Card>
           </div>
 
-          {/* Main Grid */}
           <div className="grid lg:grid-cols-[70%_30%] gap-8">
             {/* Left Column */}
             <div>
               {/* Ticket en cours */}
               <Card className="p-8 mb-6 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200">
-                <p className="text-sm text-gray-600 mb-2">TICKET EN COURS</p>
+                <p className="text-sm text-gray-600 mb-2">{t('agent.current_ticket_label')}</p>
                 {ticketEnCours ? (
                   <>
                     <motion.div
@@ -255,17 +193,17 @@ export default function AgentDashboard() {
                       #{ticketEnCours.numero}
                     </motion.div>
                     <p className="text-gray-700 mb-6">
-                      {ticketEnCours.citoyen?.prenom?.[0]}*** {ticketEnCours.citoyen?.nom?.[0]}***
+                      {t('agent.citizen')} {ticketEnCours.citoyen?.prenom?.[0]}*** {ticketEnCours.citoyen?.nom?.[0]}***
                     </p>
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       <Button
                         onClick={() => setShowServiDialog(true)}
                         size="lg"
                         className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
                       >
-                        <CheckCircle2 className="w-5 h-5 mr-2" />
-                        Servi
+                        <CheckCircle2 className="w-5 h-5 me-2" />
+                        {t('agent.served_btn')}
                       </Button>
                       <Button
                         onClick={() => setShowAbsentDialog(true)}
@@ -273,15 +211,15 @@ export default function AgentDashboard() {
                         variant="outline"
                         className="border-red-600 text-red-600 hover:bg-red-50"
                       >
-                        <XCircle className="w-5 h-5 mr-2" />
-                        Absent
+                        <XCircle className="w-5 h-5 me-2" />
+                        {t('agent.absent_btn')}
                       </Button>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="text-8xl font-bold text-gray-300 mb-4">—</div>
-                    <p className="text-gray-500 mb-6">Aucun ticket en cours</p>
+                    <p className="text-gray-500 mb-6">{t('agent.no_current')}</p>
                     <Button
                       onClick={handleAppelerSuivant}
                       disabled={calling || ticketsEnAttente.length === 0}
@@ -290,11 +228,11 @@ export default function AgentDashboard() {
                     >
                       {calling ? (
                         <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Appel en cours...
+                          <Loader2 className="w-5 h-5 me-2 animate-spin" />
+                          {t('agent.calling')}
                         </>
                       ) : (
-                        'Appeler Suivant'
+                        t('agent.call_next')
                       )}
                     </Button>
                   </>
@@ -303,19 +241,19 @@ export default function AgentDashboard() {
 
               {/* Tickets en attente */}
               <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Tickets en attente ({ticketsEnAttente.length})
+                {t('agent.waiting_list_count', { count: ticketsEnAttente.length })}
               </h3>
-              
+
               {ticketsEnAttente.length === 0 ? (
                 <Card className="p-8 text-center">
                   <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">Aucun ticket en attente</p>
+                  <p className="text-gray-600">{t('agent.empty_queue_short')}</p>
                 </Card>
               ) : (
                 <div className="space-y-3">
                   {ticketsEnAttente.map((ticket, index) => (
-                    <Card 
-                      key={ticket._id} 
+                    <Card
+                      key={ticket._id}
                       className={`p-4 ${index === 0 ? 'border-2 border-green-500' : ''}`}
                     >
                       <div className="flex items-center justify-between">
@@ -325,14 +263,16 @@ export default function AgentDashboard() {
                           </div>
                           <div>
                             <p className="font-semibold text-gray-900">
-                              Citoyen {ticket.citoyen?.prenom?.[0]}*** {ticket.citoyen?.nom?.[0]}***
+                              {t('agent.citizen')} {ticket.citoyen?.prenom?.[0]}*** {ticket.citoyen?.nom?.[0]}***
                             </p>
                             <p className="text-sm text-gray-500">
-                              Pris à {new Date(ticket.heure_creation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              {t('agent.taken_at', {
+                                time: new Date(ticket.heure_creation).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+                              })}
                             </p>
                           </div>
                         </div>
-                        {index === 0 && <Badge className="bg-green-600">PROCHAIN</Badge>}
+                        {index === 0 && <Badge className="bg-green-600">{t('agent.next_badge')}</Badge>}
                       </div>
                     </Card>
                   ))}
@@ -343,40 +283,40 @@ export default function AgentDashboard() {
             {/* Right Column - Contrôles */}
             <div>
               <Card className="p-6">
-                <h3 className="font-bold text-gray-900 mb-6">Contrôles</h3>
+                <h3 className="font-bold text-gray-900 mb-6">{t('agent.controls')}</h3>
                 <div className="space-y-3">
                   <Button
                     onClick={handleAppelerSuivant}
                     disabled={calling || ticketsEnAttente.length === 0 || ticketEnCours}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
                   >
-                    <Play className="w-5 h-5 mr-2" />
-                    Appeler Suivant
+                    <Play className="w-5 h-5 me-2" />
+                    {t('agent.call_next')}
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={() => navigate('/agent/appointments')}
                   >
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Voir RDV
+                    <Calendar className="w-5 h-5 me-2" />
+                    {t('agent.see_rdv')}
                   </Button>
                 </div>
 
                 <div className="mt-8 pt-8 border-t">
-                  <h4 className="font-semibold text-gray-900 mb-4">Stats personnelles</h4>
+                  <h4 className="font-semibold text-gray-900 mb-4">{t('agent.personal_stats')}</h4>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Tickets traités</span>
+                      <span className="text-gray-600">{t('agent.tickets_processed')}</span>
                       <span className="font-bold text-gray-900">{stats.servis_aujourdhui}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">En attente</span>
+                      <span className="text-gray-600">{t('agent.waiting_count')}</span>
                       <span className="font-bold text-gray-900">{stats.en_attente}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Service</span>
+                      <span className="text-gray-600">{t('common.service')}</span>
                       <span className="font-bold text-gray-900">{service?.nom}</span>
                     </div>
                   </div>
@@ -391,18 +331,18 @@ export default function AgentDashboard() {
       <AlertDialog open={showServiDialog} onOpenChange={setShowServiDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Marquer comme servi ?</AlertDialogTitle>
+            <AlertDialogTitle>{t('agent.confirm_served_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Le ticket #{ticketEnCours?.numero} sera marqué comme servi. Cette action est irréversible.
+              {t('agent.confirm_served_desc', { num: ticketEnCours?.numero })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleMarquerServi}
               className="bg-green-600 hover:bg-green-700"
             >
-              Confirmer
+              {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -412,18 +352,18 @@ export default function AgentDashboard() {
       <AlertDialog open={showAbsentDialog} onOpenChange={setShowAbsentDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Marquer comme absent ?</AlertDialogTitle>
+            <AlertDialogTitle>{t('agent.confirm_absent_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Le citoyen sera marqué comme absent et le prochain ticket sera appelé automatiquement.
+              {t('agent.confirm_absent_msg')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleMarquerAbsent}
               className="bg-red-600 hover:bg-red-700"
             >
-              Confirmer
+              {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,28 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { etablissementsAPI } from '../services/api';
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  Users, 
-  Clock, 
-  Calendar as CalendarIcon, 
-  BarChart3,
+import {
   Loader2,
   Save,
   CheckCircle2
 } from 'lucide-react';
+import AdminSidebar from '../components/AdminSidebar';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function ConfigureHoursPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const [establishment, setEstablishment] = useState(null);
   const [horaires, setHoraires] = useState({
     lundi: { ouvert: true, ouverture: '08:00', fermeture: '17:00' },
     mardi: { ouvert: true, ouverture: '08:00', fermeture: '17:00' },
@@ -52,9 +44,8 @@ export default function ConfigureHoursPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await etablissementsAPI.getById(user.etablissement);
-      setEstablishment(response.data);
-      
+      const response = await etablissementsAPI.getById(user.etablissement_id);
+
       // Si l'établissement a déjà des horaires, les charger
       if (response.data.horaires) {
         setHoraires(response.data.horaires);
@@ -91,7 +82,7 @@ export default function ConfigureHoursPage() {
     try {
       setSaving(true);
       
-      await etablissementsAPI.update(user.etablissement, { horaires });
+      await etablissementsAPI.update({ horaires });
       
       toast.success('Horaires enregistrés avec succès !');
     } catch (error) {
@@ -112,63 +103,7 @@ export default function ConfigureHoursPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-purple-900 to-purple-700 text-white p-6 hidden lg:block">
-        <div className="mb-10">
-          <p className="text-sm text-white/70 mb-1">Établissement</p>
-          <p className="font-bold">{establishment?.nom || 'Mon Établissement'}</p>
-        </div>
-        
-        <nav className="space-y-2">
-          <Link 
-            to="/admin/dashboard" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Vue d'ensemble</span>
-          </Link>
-          
-          <Link 
-            to="/admin/services" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Wrench className="w-5 h-5" />
-            <span>Gestion Services</span>
-          </Link>
-          
-          <Link 
-            to="/admin/agents" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <Users className="w-5 h-5" />
-            <span>Gestion Agents</span>
-          </Link>
-          
-          <Link 
-            to="/admin/hours" 
-            className="flex items-center space-x-3 bg-white/10 rounded-lg p-3"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Horaires & Pauses</span>
-          </Link>
-          
-          <Link 
-            to="/admin/appointments-config" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <CalendarIcon className="w-5 h-5" />
-            <span>Configuration RDV</span>
-          </Link>
-          
-          <Link 
-            to="/admin/stats" 
-            className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-3 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Statistiques</span>
-          </Link>
-        </nav>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">

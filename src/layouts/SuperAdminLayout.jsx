@@ -19,7 +19,7 @@ export default function SuperAdminLayout() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to="/super-admin/dashboard" className="flex items-center space-x-2">
+            <Link to="/superadmin/dashboard" className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">F</span>
               </div>
@@ -29,19 +29,19 @@ export default function SuperAdminLayout() {
             </Link>
 
             <nav className="hidden md:flex items-center space-x-1">
-              <Link to="/super-admin/dashboard">
+              <Link to="/superadmin/dashboard">
                 <Button variant="ghost" className="flex items-center gap-2">
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
                 </Button>
               </Link>
-              <Link to="/super-admin/validate">
+              <Link to="/superadmin/validate">
                 <Button variant="ghost" className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
                   Valider
                 </Button>
               </Link>
-              <Link to="/super-admin/manage">
+              <Link to="/superadmin/establishments">
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   Gérer

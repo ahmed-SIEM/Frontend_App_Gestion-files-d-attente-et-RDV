@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 
 export default function AppointmentCalendarPage() {
   const { etablissementId, serviceId } = useParams();
+  const [searchParams] = useSearchParams();
+  const rescheduleId = searchParams.get('reschedule');
   const navigate = useNavigate();
 
   const [establishment, setEstablishment] = useState(null);
@@ -55,8 +57,10 @@ export default function AppointmentCalendarPage() {
   const fetchCreneaux = async () => {
     try {
       setLoadingCreneaux(true);
-      
-      const dateStr = selectedDate.toISOString().split('T')[0];
+
+      // Utiliser la date locale (pas UTC) pour éviter le décalage d'un jour (bug timezone)
+      const pad = (n) => String(n).padStart(2, '0');
+      const dateStr = `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}`;
       const response = await rdvAPI.getCreneaux(serviceId, dateStr);
       
       setCreneaux(response.data || []);
@@ -106,16 +110,23 @@ export default function AppointmentCalendarPage() {
 
     try {
       setSubmitting(true);
-      
-      const response = await rdvAPI.create({
-        creneauxIds: [selectedCreneau._id],
-        serviceId: serviceId,
-        motif: ''
-      });
-      
-      toast.success('Rendez-vous réservé !');
-      navigate(`/citoyen/appointment-confirmation/${response.data._id}`);
-      
+
+      if (rescheduleId) {
+        // Reprogrammer un RDV existant
+        await rdvAPI.reschedule(rescheduleId, { nouveauxCreneauxIds: [selectedCreneau._id] });
+        toast.success('Rendez-vous reprogrammé avec succès !');
+        navigate('/citoyen/activities');
+      } else {
+        // Nouveau RDV
+        const response = await rdvAPI.create({
+          creneauxIds: [selectedCreneau._id],
+          serviceId: serviceId,
+          motif: ''
+        });
+        toast.success('Rendez-vous réservé !');
+        navigate(`/citoyen/appointment-confirmation/${response.data._id}`);
+      }
+
     } catch (error) {
       console.error('Erreur:', error);
       toast.error(error.message || 'Erreur lors de la réservation');
@@ -164,7 +175,9 @@ export default function AppointmentCalendarPage() {
             <ArrowLeft className="w-5 h-5 mr-2" />
             Retour
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Réserver un rendez-vous</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {rescheduleId ? 'Reprogrammer le rendez-vous' : 'Réserver un rendez-vous'}
+          </h1>
           <p className="text-gray-600">{service.nom} - {establishment.nom}</p>
         </div>
 
@@ -325,6 +338,8 @@ export default function AppointmentCalendarPage() {
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Réservation...
                     </>
+                  ) : rescheduleId ? (
+                    'Confirmer la reprogrammation'
                   ) : (
                     'Réserver ce créneau'
                   )}
